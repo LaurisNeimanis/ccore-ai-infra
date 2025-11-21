@@ -1,0 +1,53 @@
+### Terraform ###
+*.tfstate
+*.tfstate.*
+.crash
+.terraform/
+.terraform.lock.hcl
+
+# Local variable override files (never commit secrets)
+terraform.tfvars
+*.auto.tfvars
+
+# Plan files
+*.tfplan
+
+### Ansible ###
+*.retry
+inventory.ini
+host_vars/*
+group_vars/*
+ansible/roles/**/files/*
+ansible/roles/**/templates/*
+
+# If you ever use encrypted vault files, ignore unencrypted forms
+*.vault
+*.vault.yml
+
+### Python (if used for tooling) ###
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+env/
+venv/
+
+### Logs ###
+*.log
+logs/
+
+### System files ###
+.DS_Store
+Thumbs.db
+
+### Editor ###
+.vscode/
+.idea/
+
+### CI/CD temp ###
+*.bak
+*.tmp
+
+### OS junk ###
+ehthumbs.db
+desktop.ini

@@ -1,0 +1,10 @@
+flowchart TD
+    A[Terraform Apply] --> B[VPC Module]
+    A --> C[EC2 Module]
+    C --> D[EC2 Instance]
+
+    D -->|cloud-init| E[Base Bootstrap]
+    E -->|SSH| F[Ansible Playbook]
+
+    B --> G[Public Subnet]
+    B --> H[Route Table]
