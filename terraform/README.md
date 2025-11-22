@@ -66,10 +66,36 @@ Terraform provisions:
 - EC2 instance with keypair
 - Latest Ubuntu 24.04 AMI
 - `bootstrap.sh` cloud-init script
+- **Auto-generated Ansible inventory file**
 
 ---
 
-## 3. Bootstrap Script
+## 3. Auto‑Generated Ansible Inventory
+
+Terraform automatically creates:
+
+```
+ansible/inventory/hosts.ini
+```
+
+Example content:
+
+```
+[app]
+3.67.196.100 ansible_user=ubuntu
+```
+
+This file:
+
+- Always matches the current EC2 instance
+- Is regenerated on **terraform apply**
+- Is **ignored** by Git (.gitignore)
+
+This ensures Ansible always targets the correct host with zero manual updates.
+
+---
+
+## 4. Bootstrap Script
 
 Path:
 
@@ -90,7 +116,7 @@ This ensures the instance is ready for Ansible provisioning.
 
 ---
 
-## 4. AMI (Ubuntu 24.04 LTS)
+## 5. AMI (Ubuntu 24.04 LTS)
 
 The compute module automatically selects the newest Ubuntu **Noble 24.04** AMI.
 
@@ -108,7 +134,32 @@ Filters include:
 
 ---
 
-## 5. CIDR Planning
+## 6. Terraform Architecture Diagram
+
+```mermaid
+flowchart TD
+    A[envs/dev/main.tf] --> B[network module]
+    A --> C[compute module]
+    A --> D[local_file: generate hosts.ini]
+
+    B --> VPC[VPC]
+    B --> SUB[Subnet]
+    B --> IGW[Internet Gateway]
+    B --> RT[Route Table]
+    B --> SG[Security Group]
+
+    C --> AMI[AMI Lookup]
+    C --> EC2[EC2 Instance]
+    C --> BOOT[cloud-init bootstrap]
+
+    EC2 --> INV[ansible/inventory/hosts.ini]
+```
+
+This diagram shows the Terraform flow from environment configuration, through modules, to inventory generation.
+
+---
+
+## 7. CIDR Planning
 
 Chosen IP layout:
 
@@ -122,26 +173,13 @@ This avoids AWS default ranges and prevents network conflicts for VPN/peering sc
 
 ---
 
-## 6. Architecture Rationale
-
-This layout reflects real production patterns:
-
-- Modules are reusable and environment-agnostic
-- Environments only inject config (tfvars)
-- User-data script lives in a standalone file
-- AMI filters are inside dedicated `data.tf`
-- Root volume configuration is parameterized
-- Tags unify visibility and Ansible dynamic inventory integration
-
----
-
-## 7. Security
+## 8. Security
 
 Security group created in `network` module exposes:
 
 - SSH (22) — controlled via `allowed_ssh_cidr`
-- HTTP (80) — world-open for demo
-- HTTPS (443) — world-open for demo
+- HTTP (80)
+- HTTPS (443)
 - All outbound allowed
 
 EC2 instances include structured tags:
@@ -155,7 +193,7 @@ These tags support automation, discovery, and operational clarity.
 
 ---
 
-## 8. Future Extensions
+## 9. Future Extensions
 
 This Terraform model supports evolution toward:
 
@@ -165,11 +203,11 @@ This Terraform model supports evolution toward:
 - S3 buckets / IAM resources
 - ECS or EKS clusters
 - GitHub Actions pipelines for Terraform
-- Production-grade high-availability architecture
+- Production-grade HA architectures
 
 ---
 
-## 9. Summary
+## 10. Summary
 
 This Terraform structure provides:
 
@@ -177,6 +215,6 @@ This Terraform structure provides:
 - Clear separation of logic and configuration
 - Senior-grade AWS/Terraform patterns
 - A scalable foundation for cloud environments
-- A realistic base for Terraform + Ansible workflows
+- Automatic Ansible inventory generation
 
----
+Minimal, clean, and production-ready.
