@@ -48,3 +48,14 @@ module "compute" {
 
   security_group_ids = [module.network.security_group_id]
 }
+
+resource "local_file" "ansible_inventory" {
+  filename = "${path.module}/../../../ansible/inventory/hosts.ini"
+
+  content = templatefile("${path.module}/hosts.ini.tmpl", {
+    public_ip = module.compute.public_ip
+  })
+
+  file_permission      = "0644"
+  directory_permission = "0700"
+}

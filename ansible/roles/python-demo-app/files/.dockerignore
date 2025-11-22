@@ -1,0 +1,30 @@
+# Python cache
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# Virtualenvs
+venv/
+env/
+.venv/
+
+# OS files
+.DS_Store
+
+# Git
+.git
+.gitignore
+
+# Editor configs
+.vscode/
+.idea/
+
+# Logs
+*.log
+
+# Docker
+docker-compose.yml
+Dockerfile
+*.swp
+*.swo

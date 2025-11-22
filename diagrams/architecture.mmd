@@ -1,10 +1,12 @@
 flowchart TD
-    A[Terraform Apply] --> B[VPC Module]
-    A --> C[EC2 Module]
-    C --> D[EC2 Instance]
+    A[Terraform Apply] --> B[VPC + Subnet + Route Table]
+    A --> C[EC2 Instance]
+    A --> D[Generate Ansible Inventory hosts.ini]
 
-    D -->|cloud-init| E[Base Bootstrap]
-    E -->|SSH| F[Ansible Playbook]
+    C --> E[cloud-init bootstrap]
+    E --> F[Ansible Playbook]
 
-    B --> G[Public Subnet]
-    B --> H[Route Table]
+    F --> G[Docker Install Role]
+    F --> H[Python Demo App Role]
+
+    H --> I[Docker Compose Stack]

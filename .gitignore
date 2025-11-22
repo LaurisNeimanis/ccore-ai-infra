@@ -14,11 +14,9 @@ terraform.tfvars
 
 ### Ansible ###
 *.retry
-inventory.ini
+ansible/inventory/hosts.ini
 host_vars/*
 group_vars/*
-ansible/roles/**/files/*
-ansible/roles/**/templates/*
 
 # If you ever use encrypted vault files, ignore unencrypted forms
 *.vault
