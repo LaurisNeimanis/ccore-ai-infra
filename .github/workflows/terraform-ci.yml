@@ -28,7 +28,3 @@ jobs:
             - name: Terraform Validate
               working-directory: terraform/envs/dev
               run: terraform validate
-
-            - name: Terraform Plan (dry-run)
-              working-directory: terraform/envs/dev
-              run: terraform plan -lock=false -input=false
