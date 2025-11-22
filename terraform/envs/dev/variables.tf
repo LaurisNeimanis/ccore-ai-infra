@@ -1,5 +1,6 @@
 variable "project_name" {
-  type = string
+  type    = string
+  default = "ccore-ai"
 }
 
 variable "env" {
