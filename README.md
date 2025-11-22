@@ -15,6 +15,34 @@ minimal, reproducible form.
 
 ---
 
+## 📌 About Terraform State (S3 + DynamoDB Recommendation)
+
+In real production environments, Terraform state **must not** be stored locally.  
+A standard best-practice setup uses:
+
+- **S3 bucket** → remote backend for Terraform state
+- **DynamoDB table** → state-locking to prevent concurrent operations
+
+Example production backend:
+
+```hcl
+terraform {
+  backend "s3" {
+    bucket         = "my-tfstate-bucket"
+    key            = "ccore-ai/infra/terraform.tfstate"
+    region         = "eu-central-1"
+    dynamodb_table = "terraform-locks"
+    encrypt        = true
+  }
+}
+```
+
+For this demo repository, the backend is intentionally kept **local** to avoid requiring
+additional AWS resources and to make onboarding simple.  
+The design still fully supports adopting S3+DynamoDB when moving to production.
+
+---
+
 ## 1. Architecture Overview
 
 The infrastructure follows a clean, separated structure:
@@ -89,14 +117,14 @@ Either:
 
 ### Step 2: Initialize Terraform
 
-```
+```bash
 cd terraform/envs/dev
 terraform init
 ```
 
 ### Step 3: Create the environment
 
-```
+```bash
 terraform apply
 ```
 
@@ -109,22 +137,19 @@ Terraform will:
 
 ### Step 4: Run Ansible provisioning (Dynamic Inventory)
 
-Ansible does **not** use IP addresses directly.  
-Instead, it uses the AWS EC2 Dynamic Inventory plugin, which automatically discovers
-the EC2 instance created by Terraform based on its AWS tags.
-
-To apply configuration:
+Ansible uses the **AWS EC2 Dynamic Inventory plugin**.  
+It discovers instances by tags (`Role=app`, `Env=dev`) — no need to manually pass IPs.
 
 ```bash
 ansible-playbook -i ansible/inventory/aws_ec2.yml ansible/playbook.yml
 ```
 
-The dynamic inventory will:
+It automatically:
 
-- query AWS for EC2 instances,
-- find the instance with the tags (e.g., `Role=app`, `Env=dev`),
-- automatically use its public or private IP,
-- and configure the server without any manual input.
+- queries AWS for instances
+- identifies the correct EC2 host
+- connects using your SSH key
+- applies the playbook
 
 This provisioning step installs:
 
