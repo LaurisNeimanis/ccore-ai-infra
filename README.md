@@ -1,5 +1,17 @@
 # DevOps AWS Terraform + Ansible Stack
 
+<p>
+  <img src="https://img.shields.io/badge/Terraform-5C4EE5?logo=terraform&logoColor=white" />
+  <img src="https://img.shields.io/badge/Ansible-EE0000?logo=ansible&logoColor=white" />
+  <img src="https://img.shields.io/badge/Docker-2496ED?logo=docker&logoColor=white" />
+  <img src="https://img.shields.io/badge/AWS-FF9900?logo=amazon-aws&logoColor=white" />
+</p>
+
+<p>
+  <img src="https://github.com/LaurisNeimanis/ccore-ai-infra/actions/workflows/terraform-ci.yml/badge.svg" />
+  <img src="https://github.com/LaurisNeimanis/ccore-ai-infra/actions/workflows/ansible-lint.yml/badge.svg" />
+</p>
+
 Infrastructure-as-Code templates for AWS using **Terraform** and **Ansible**.  
 This repository demonstrates a clean, production‑grade DevOps workflow.
 
