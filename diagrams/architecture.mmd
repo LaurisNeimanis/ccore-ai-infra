@@ -1,21 +1,33 @@
 flowchart TD
 
+    %% === Developer + CI ===
     A[Developer Commit] --> B[GitHub Actions CI]
 
-    B --> C[Terraform Init/Plan/Apply]
+    %% Terraform pipeline
+    B --> C[Terraform Init / Validate / Plan / Apply]
+
+    %% Remote state (recommended)
     C --> D[S3 Remote State + DynamoDB Lock]
 
+    %% Terraform modules
     C --> E[VPC Module]
     C --> F[EC2 Module]
     C --> G[Security Groups]
 
+    %% Terraform outputs → Ansible
     C --> H[Terraform Outputs]
-    H --> I[Ansible Inventory File]
+    H --> I[Generate Ansible Inventory]
 
+    %% Ansible deployment
     B --> J[Ansible Provisioning]
-    J --> K[Install Docker Engine]
-    J --> L[Docker Compose Deployment]
-    J --> M[Nginx Reverse Proxy + HTTPS]
-    J --> N[Python Demo Application]
 
-    M --> O[Public Endpoint]
+    J --> K[Install Docker Engine]
+    J --> L[Generate Docker Compose + Pull GHCR Images]
+    J --> M[Apply Nginx Reverse Proxy + SSL]
+
+    %% App deployment
+    L --> N["Backend + Frontend (GHCR Images)"]
+    N --> O[Docker Compose Stack Running on EC2]
+
+    %% Public access
+    M --> P[Public HTTPS Endpoint]

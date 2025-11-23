@@ -26,6 +26,23 @@ The goal is to showcase real DevOps engineering practices in a minimal, reproduc
 
 ---
 
+## Application Integration (ccore-ai-demo)
+
+This infrastructure stack deploys the application layer from a separate repository:
+
+🔗 https://github.com/LaurisNeimanis/ccore-ai-demo
+
+The EC2 instance uses **pre-built Docker images** from GHCR:
+
+- `ghcr.io/laurisneimanis/ccore-ai-demo-backend:latest`
+- `ghcr.io/laurisneimanis/ccore-ai-demo-frontend:latest`
+
+No application build happens on EC2 — deployment is fully pull-based.
+
+Security groups follow the principle of least privilege, exposing only HTTPS to the public internet.
+
+---
+
 ## 📌 Terraform State (Production Recommendation)
 
 Production setups must use:
@@ -37,11 +54,23 @@ For demo purposes this repo keeps state **local**, but switching to S3+DynamoDB 
 
 ---
 
+## Prerequisites
+
+- Terraform ≥ 1.6
+- Ansible ≥ 2.15
+- AWS CLI configured (SSO or access keys)
+- Ansible-compatible SSH access to EC2 (cloud-init enables this automatically)
+- GitHub Actions runners (provided by GitHub)
+
+---
+
 ## 1. Architecture Overview
 
 ```
-Terraform → AWS infra → cloud‑init → Ansible → Docker → Full app stack
+Terraform → AWS infra → cloud‑init → Ansible → Docker → GHCR images → Full app stack
 ```
+
+EC2 instances are bootstrapped via cloud-init, which installs Python3 and ensures the instance is ready for Ansible (marker file: `/var/log/bootstrap_ready.log`).
 
 ```mermaid
 flowchart TD
@@ -53,9 +82,10 @@ flowchart TD
     E --> F[Ansible Playbook]
 
     F --> G[Docker Install Role]
-    F --> H[Python Demo App Role]
+    F --> H["App Deployment (GHCR Images)"]
 
     H --> I[Docker Compose Stack]
+    I --> J[Backend + Frontend from ccore-ai-demo]
 ```
 
 > **Full detailed diagram:** see `diagrams/architecture.mmd`
@@ -80,7 +110,7 @@ ccore-ai-infra/
 │   │   └── hosts.ini                    # Auto-generated list of EC2 hosts from Terraform output
 │   ├── roles/                           # Modular Ansible roles
 │   │   ├── docker-install/              # Installs Docker Engine + dependencies
-│   │   └── python-demo-app/             # Deploys Python app + Nginx + Docker Compose
+│   │   └── app-deployment/              # Deploys backend + frontend via GHCR + Nginx + Docker Compose
 │   ├── playbook.yml                     # Entry point playbook executed by CI or locally
 │   └── README.md                        # Documentation for the Ansible setup
 │
@@ -94,7 +124,6 @@ ccore-ai-infra/
 │
 ├── LICENSE                              # Repository license
 └── README.md                            # Main documentation covering whole stack
-
 ```
 
 Terraform provisions infra → then generates:
@@ -116,8 +145,8 @@ Example:
 
 - **Terraform CI** – validates Terraform formatting, syntax, init, and plan
 - **Ansible Lint** – validates playbooks, roles, templates, structure
-- **CI pipeline** runs automatically on push / PR
-- Ensures the repo is always deployable, formatted, and compliant
+- **CI pipeline** runs automatically on push / PR  
+  Ensures the repo is always deployable, formatted, and compliant.
 
 ---
 
@@ -129,8 +158,8 @@ Either:
 
 - AWS SSO
 - or access keys
-- or env variables  
-  (`AWS_ACCESS_KEY_ID`, `AWS_SECRET_ACCESS_KEY`)
+- or env variables:  
+  `AWS_ACCESS_KEY_ID`, `AWS_SECRET_ACCESS_KEY`
 
 ### Step 2 – Initialize Terraform
 
@@ -155,10 +184,24 @@ This installs:
 
 - Docker Engine
 - Docker Compose plugin
-- Python demo app
 - Nginx reverse proxy
-- SSL (self‑signed)
-- Complete Docker Compose stack under `/opt/app`
+- SSL (self-signed, auto-generated in demo mode)
+- Pulls latest production images from GHCR
+- Deploys full backend + frontend stack under `/opt/ccore-ai`
+
+---
+
+### Redeploy After New Image Builds
+
+When **ccore-ai-demo** pushes a new container image, update EC2 with:
+
+```
+docker compose -f /opt/ccore-ai/docker-compose.yml pull
+docker compose -f /opt/ccore-ai/docker-compose.yml up -d
+```
+
+The Ansible playbook is fully idempotent — it can be executed multiple times safely.
+Re-running the playbook will simply pull newer images (if available) and update the stack without breaking existing configuration.
 
 ---
 
