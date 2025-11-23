@@ -27,12 +27,12 @@ http {
         return 301 https://$host$request_uri;
     }
 
-    # Upstream backend (docker compose)
-    upstream app_backend {
-        server python-demo-app:5000;
+    # Upstream frontend (Docker Compose)
+    upstream app_frontend {
+        server ccore-frontend:8501;
     }
 
-    # HTTPS reverse proxy
+    # HTTPS reverse proxy – PUBLIC ONLY FRONTEND
     server {
         listen 443 ssl;
         server_name _;
@@ -43,12 +43,20 @@ http {
         ssl_protocols TLSv1.2 TLSv1.3;
         ssl_ciphers HIGH:!aNULL:!MD5;
 
+        # Public root → frontend
         location / {
-            proxy_pass http://app_backend;
+            proxy_pass http://app_frontend;
+
+            proxy_http_version 1.1;
+            proxy_set_header Upgrade $http_upgrade;
+            proxy_set_header Connection "upgrade";
+
             proxy_set_header Host $host;
             proxy_set_header X-Real-IP $remote_addr;
             proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
             proxy_set_header X-Forwarded-Proto $scheme;
+
+            proxy_read_timeout 86400;
         }
     }
 }

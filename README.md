@@ -58,6 +58,8 @@ flowchart TD
     H --> I[Docker Compose Stack]
 ```
 
+> **Full detailed diagram:** see `diagrams/architecture.mmd`
+
 ---
 
 ## 2. Folder Structure

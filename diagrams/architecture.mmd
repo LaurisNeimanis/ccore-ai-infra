@@ -1,12 +1,21 @@
 flowchart TD
-    A[Terraform Apply] --> B[VPC + Subnet + Route Table]
-    A --> C[EC2 Instance]
-    A --> D[Generate Ansible Inventory hosts.ini]
 
-    C --> E[cloud-init bootstrap]
-    E --> F[Ansible Playbook]
+    A[Developer Commit] --> B[GitHub Actions CI]
 
-    F --> G[Docker Install Role]
-    F --> H[Python Demo App Role]
+    B --> C[Terraform Init/Plan/Apply]
+    C --> D[S3 Remote State + DynamoDB Lock]
 
-    H --> I[Docker Compose Stack]
+    C --> E[VPC Module]
+    C --> F[EC2 Module]
+    C --> G[Security Groups]
+
+    C --> H[Terraform Outputs]
+    H --> I[Ansible Inventory File]
+
+    B --> J[Ansible Provisioning]
+    J --> K[Install Docker Engine]
+    J --> L[Docker Compose Deployment]
+    J --> M[Nginx Reverse Proxy + HTTPS]
+    J --> N[Python Demo Application]
+
+    M --> O[Public Endpoint]
