@@ -1,69 +1,93 @@
 ---
-- name: Ensure base app directory exists
+# ============================
+# Base directories
+# ============================
+- name: Ensure app directory exists
   file:
-    path: /opt/app
+    path: /opt/ccore-ai
     state: directory
     mode: "0755"
 
-- name: Create nginx directories
+- name: Ensure nginx directories exist
   file:
-    path: /opt/app/nginx/certs
+    path: /opt/ccore-ai/nginx/certs
     state: directory
     mode: "0755"
     recurse: yes
 
-- name: Generate self-signed SSL certificate
+# ============================
+# Self-signed cert generation (only if missing)
+# ============================
+- name: Check if SSL certificate exists
+  stat:
+    path: /opt/ccore-ai/nginx/certs/self.crt
+  register: cert_exists
+
+- name: Check if SSL key exists
+  stat:
+    path: /opt/ccore-ai/nginx/certs/self.key
+  register: key_exists
+
+- name: Generate self-signed certificate (only if missing)
   command: >
     openssl req -x509 -nodes -days 365
-    -subj "/CN=localhost"
     -newkey rsa:2048
-    -keyout /opt/app/nginx/certs/self.key
-    -out /opt/app/nginx/certs/self.crt
-  args:
-    creates: /opt/app/nginx/certs/self.crt
+    -keyout /opt/ccore-ai/nginx/certs/self.key
+    -out /opt/ccore-ai/nginx/certs/self.crt
+    -subj "/C=LV/ST=LV/L=Liepaja/O=CyberTech/OU=DevOps/CN=demo.local"
+  when: not cert_exists.stat.exists or not key_exists.stat.exists
+  register: ssl_change
 
-- name: Deploy nginx.conf from template
-  template:
-    src: nginx.conf.j2
-    dest: /opt/app/nginx/nginx.conf
-    mode: "0644"
-
-- name: Create python demo app directory
-  file:
-    path: /opt/app/python-demo-app
-    state: directory
-    mode: "0755"
-
-- name: Deploy Python demo app Dockerfile
-  template:
-    src: Dockerfile.j2
-    dest: /opt/app/python-demo-app/Dockerfile
-    mode: "0644"
-
-- name: Copy python demo app build context
-  copy:
-    src: "{{ role_path }}/files/"
-    dest: /opt/app/python-demo-app/
-    mode: "0644"
-
-- name: Deploy docker-compose.yml from template
+# ============================
+# Deploy templates
+# ============================
+- name: Deploy docker-compose.yml
   template:
     src: docker-compose.yml.j2
-    dest: /opt/app/docker-compose.yml
+    dest: /opt/ccore-ai/docker-compose.yml
     mode: "0644"
+  register: compose_file_change
 
-- name: Ensure docker compose plugin installed
+- name: Deploy nginx.conf
+  template:
+    src: nginx.conf.j2
+    dest: /opt/ccore-ai/nginx/nginx.conf
+    mode: "0644"
+  register: nginx_file_change
+
+# ============================
+# Docker Compose plugin
+# ============================
+- name: Gather package facts
+  package_facts:
+    manager: apt
+
+- name: Install Docker Compose plugin if missing
   apt:
     name: docker-compose-plugin
     state: present
     update_cache: yes
+  when: "'docker-compose-plugin' not in ansible_facts.packages"
+  register: compose_install
 
-- name: Restart Docker service after plugin install
+# ============================
+# Restart Docker (ONLY if needed)
+# ============================
+- name: Restart Docker service
   systemd:
     name: docker
     state: restarted
+  when: compose_install.changed
 
-- name: Start / update stack with Docker Compose
-  command: /usr/bin/docker compose up -d --build
+# ============================
+# Start stack (ONLY if something changed)
+# ============================
+- name: Start stack with Docker Compose
+  command: docker compose -f /opt/ccore-ai/docker-compose.yml up -d
   args:
-    chdir: /opt/app
+    chdir: /opt/ccore-ai
+  when: >
+    compose_file_change.changed or
+    nginx_file_change.changed or
+    ssl_change.changed or
+    compose_install.changed
