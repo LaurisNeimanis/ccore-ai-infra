@@ -1,40 +1,35 @@
 variable "name" {
-  description = "Base name for networking resources"
   type        = string
-}
-
-variable "vpc_cidr" {
-  description = "CIDR for VPC"
-  type        = string
-  default     = "10.10.0.0/16"
-}
-
-variable "public_subnet_cidr" {
-  description = "CIDR for public subnet"
-  type        = string
-  default     = "10.10.1.0/24"
-}
-
-variable "az" {
-  description = "Availability zone for subnet"
-  type        = string
-  default     = "eu-central-1a"
-}
-
-variable "allowed_ssh_cidr" {
-  description = "CIDR allowed to SSH (demo default is open; tighten later)"
-  type        = string
-  default     = "0.0.0.0/0"
-}
-
-variable "tags" {
-  description = "Common tags"
-  type        = map(string)
-  default     = {}
+  description = "Base name used for tagging and resource naming."
 }
 
 variable "env" {
-  description = "Environment name (dev/prod)"
   type        = string
-  default     = "dev"
+  description = "Environment identifier (e.g., dev, stage, prod)."
+}
+
+variable "vpc_cidr" {
+  type        = string
+  description = "CIDR block for the VPC."
+}
+
+variable "public_subnet_cidr" {
+  type        = string
+  description = "CIDR block of the public subnet."
+}
+
+variable "az" {
+  type        = string
+  description = "AWS Availability Zone for subnet placement."
+}
+
+variable "allowed_ssh_cidr" {
+  type        = string
+  description = "CIDR allowed to access SSH port."
+}
+
+variable "tags" {
+  type        = map(string)
+  description = "Additional tags applied to all resources."
+  default     = {}
 }

@@ -1,220 +1,209 @@
-# Terraform Infrastructure
+# Terraform AWS Infrastructure (Modular, Production-Grade)
 
-This directory contains the complete AWS Infrastructure-as-Code implementation for this project, built using **Terraform** and structured according to industry best practices.
+This repository contains a **fully modular, production-oriented AWS Infrastructure-as-Code setup**, built using **Terraform 1.5+**, following modern DevOps patterns:
 
-The design follows a clean separation between reusable modules and environment-specific configuration, enabling clarity, maintainability, and production-grade workflows.
+- Strict separation between **modules** and **environments**
+- Clean dependency flow (network → compute)
+- Automated provisioning bootstrap for Ansible
+- Declarative inventory generation
+- Clear, reproducible, cloud-ready IaC design
+
+This is the same architecture used across real-world DevOps, SRE, and Cloud Engineering environments.
 
 ---
 
-## 1. Directory Structure
+# 1. Directory Structure
 
 ```
 terraform/
-├── modules/
-│   ├── network/     # VPC, subnet, IGW, route table, SG
-│   └── compute/     # EC2 instance, keypair, root volume, bootstrap.sh
-│
 ├── envs/
-│   ├── dev/         # Development environment
+│   └── dev/
+│       ├── backend.tf.sample   # S3 backend template (disabled for demo)
+│       ├── main.tf             # Env composition (network + compute)
+│       ├── variables.tf        # Inputs
+│       ├── outputs.tf          # Env-level outputs
+│       ├── terraform.tfvars    # Dev bootstrap variables
+│
+├── modules/
+│   ├── network/                # VPC, subnet, IGW, routes, SG
 │   │   ├── main.tf
 │   │   ├── variables.tf
-│   │   ├── outputs.tf
-│   │   └── terraform.tfvars
-│   └── prod/        # (optional) Production environment
+│   │   └── outputs.tf
+│   │
+│   └── compute/                # AMI lookup, EC2 instance, KeyPair, bootstrap
+│       ├── main.tf
+│       ├── variables.tf
+│       ├── outputs.tf
+│       └── bootstrap.sh
+│
+├── templates/
+│   └── inventory.tmpl          # Terraform → Ansible inventory generator
 │
 └── README.md
 ```
 
-Modules contain logic.  
-Environments contain configuration values and tfvars.
+**Modules contain reusable logic.**  
+**Environments contain configuration + wiring.**
 
 ---
 
-## 2. Usage
+# 2. How It Works (High-Level Architecture)
 
-### Step 1 — Select environment
+This infrastructure provisions:
 
-```bash
-cd envs/dev
-```
-
-### Step 2 — Initialize Terraform
-
-```bash
-terraform init
-```
-
-### Step 3 — Validate the plan
-
-```bash
-terraform plan
-```
-
-### Step 4 — Apply the infrastructure
-
-```bash
-terraform apply
-```
-
-Terraform provisions:
-
+### **Network Layer (modules/network)**
 - VPC
 - Public Subnet
 - Internet Gateway
-- Route Table
-- Security Group (SSH + HTTP + HTTPS)
-- EC2 instance with keypair
-- Latest Ubuntu 24.04 AMI
-- `bootstrap.sh` cloud-init script
-- **Auto-generated Ansible inventory file**
+- Route Table + Association
+- Security Group (22/80/443)
+- Structured resource tagging
+
+### **Compute Layer (modules/compute)**
+- Latest Ubuntu 24.04 AMI (dynamic lookup)
+- EC2 Instance (t3.micro by default)
+- SSH KeyPair (from local public key)
+- Root volume configuration
+- bootstrap.sh cloud-init preparation
+
+### **Integration Layer (envs/dev)**
+- Composes network + compute modules
+- Outputs public IP, VPC, subnet, SG
+- Generates Ansible inventory via template
 
 ---
 
-## 3. Auto‑Generated Ansible Inventory
+# 3. Auto-Generated Ansible Inventory
 
-Terraform automatically creates:
-
-```
-ansible/inventory/hosts.ini
-```
-
-Example content:
+Terraform produces:
 
 ```
-[app]
-3.67.196.100 ansible_user=ubuntu
+ansible/inventory/hosts.yaml
 ```
 
-This file:
+Example output:
 
-- Always matches the current EC2 instance
-- Is regenerated on **terraform apply**
-- Is **ignored** by Git (.gitignore)
+```yaml
+all:
+  hosts:
+    app:
+      ansible_host: 3.120.88.15
+      ansible_user: ubuntu
+```
 
-This ensures Ansible always targets the correct host with zero manual updates.
+**Benefits:**
+- Always up-to-date
+- Zero manual edits
+- Safe via .gitignore
+- Enables instant provisioning
 
 ---
 
-## 4. Bootstrap Script
+# 4. Bootstrap Script (Cloud-Init)
 
-Path:
+Executed automatically via EC2 user-data:
 
-```
-modules/compute/bootstrap.sh
-```
-
-Executed automatically through EC2 user-data.
-
-The script performs:
-
-- APT cache update
-- Python3 installation (for Ansible)
-- SSH service validation (install if missing)
-- Marker file creation: `/var/log/bootstrap_ready.log`
-
-This ensures the instance is ready for Ansible provisioning.
+- Updates APT
+- Installs Python3 for Ansible
+- Ensures SSH server is running
+- Writes /var/log/bootstrap_ready.log
 
 ---
 
-## 5. AMI (Ubuntu 24.04 LTS)
+# 5. Usage
 
-The compute module automatically selects the newest Ubuntu **Noble 24.04** AMI.
-
-Defined in:
-
+### Select environment
 ```
-modules/compute/data.tf
+cd terraform/envs/dev
 ```
 
-Filters include:
+### Initialize
+```
+terraform init
+```
 
-- Owner: `099720109477` (Canonical)
-- Name: `ubuntu/images/hvm-ssd/ubuntu-*-amd64-server-*`
-- Latest image only
+### Plan
+```
+terraform plan
+```
+
+### Apply
+```
+terraform apply
+```
 
 ---
 
-## 6. Terraform Architecture Diagram
+# 6. Architecture Diagram
 
 ```mermaid
 flowchart TD
     A[envs/dev/main.tf] --> B[network module]
     A --> C[compute module]
-    A --> D[local_file: generate hosts.ini]
+    A --> D[local_file: inventory.yaml]
 
     B --> VPC[VPC]
-    B --> SUB[Subnet]
+    B --> SUB[Public Subnet]
     B --> IGW[Internet Gateway]
     B --> RT[Route Table]
     B --> SG[Security Group]
 
-    C --> AMI[AMI Lookup]
+    C --> AMI[Ubuntu AMI Lookup]
     C --> EC2[EC2 Instance]
-    C --> BOOT[cloud-init bootstrap]
+    C --> BOOT[bootstrap.sh]
 
-    EC2 --> INV[ansible/inventory/hosts.ini]
+    EC2 --> INV[Generated Ansible Inventory]
 ```
-
-This diagram shows the Terraform flow from environment configuration, through modules, to inventory generation.
 
 ---
 
-## 7. CIDR Planning
-
-Chosen IP layout:
+# 7. CIDR & AZ Layout
 
 ```
-VPC:      10.10.0.0/16
-Subnet:   10.10.1.0/24
-AZ:       eu-central-1a
+VPC:       10.10.0.0/16
+Subnet:    10.10.1.0/24
+AZ:        eu-central-1a
 ```
-
-This avoids AWS default ranges and prevents network conflicts for VPN/peering scenarios.
 
 ---
 
-## 8. Security
+# 8. Extensibility
 
-Security group created in `network` module exposes:
+Supports upgrades into:
 
-- SSH (22) — controlled via `allowed_ssh_cidr`
-- HTTP (80)
-- HTTPS (443)
-- All outbound allowed
-
-EC2 instances include structured tags:
-
-- `Project`
-- `Owner`
-- `Env`
-- `Role`
-
-These tags support automation, discovery, and operational clarity.
-
----
-
-## 9. Future Extensions
-
-This Terraform model supports evolution toward:
-
-- Multi-AZ public/private subnets
+- Multi-AZ networking
 - NAT Gateways
-- RDS / ElastiCache backend services
-- S3 buckets / IAM resources
-- ECS or EKS clusters
-- GitHub Actions pipelines for Terraform
-- Production-grade HA architectures
+- RDS / ElastiCache
+- S3 & IAM policies
+- ECS / EKS clusters
+- ALB / NLB
+- Terraform CI/CD
+- Drift detection
 
 ---
 
-## 10. Summary
+# 9. Why This Architecture
 
-This Terraform structure provides:
+Demonstrates:
 
-- Clean, modern IaC architecture
-- Clear separation of logic and configuration
-- Senior-grade AWS/Terraform patterns
-- A scalable foundation for cloud environments
-- Automatic Ansible inventory generation
+- Senior-level IaC design
+- Proper modularity
+- Cloud-init integration
+- Automated Ansible onboarding
+- Dynamic AMI + inventory
+- Clean tagging & naming
+- Scalable networking
+- Reproducibility
 
-Minimal, clean, and production-ready.
+---
+
+# 10. Summary
+
+A clean, modern AWS IaC foundation with:
+
+- Modular Terraform structure
+- Automatic inventory generation
+- Cloud-init compute provisioning
+- Clear separation of concerns
+
+Minimal. Clean. Production-ready.

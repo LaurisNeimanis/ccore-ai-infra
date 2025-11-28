@@ -1,11 +1,23 @@
+# --------------------------------------------
+# NETWORK OUTPUTS
+# --------------------------------------------
+
 output "vpc_id" {
-  value = aws_vpc.this.id
+  description = "ID of the VPC."
+  value       = aws_vpc.this.id
 }
 
 output "public_subnet_id" {
-  value = aws_subnet.public.id
+  description = "ID of the public subnet."
+  value       = aws_subnet.public.id
+}
+
+output "public_subnet_cidr" {
+  description = "CIDR block of the public subnet."
+  value       = aws_subnet.public.cidr_block
 }
 
 output "security_group_id" {
-  value = aws_security_group.this.id
+  description = "ID of the security group used by compute resources."
+  value       = aws_security_group.this.id
 }
