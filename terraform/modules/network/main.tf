@@ -1,44 +1,65 @@
+# --------------------------------------------
+# VPC
+# --------------------------------------------
 resource "aws_vpc" "this" {
-  cidr_block           = var.vpc_cidr
-  enable_dns_support   = true
-  enable_dns_hostnames = true
+  cidr_block = var.vpc_cidr
 
-  tags = merge(var.tags, {
-    Name = "${var.name}-${var.env}-vpc"
-  })
+  tags = merge(
+    {
+      Name = "${var.name}-${var.env}-vpc"
+    },
+    var.tags
+  )
 }
 
+# --------------------------------------------
+# PUBLIC SUBNET
+# --------------------------------------------
+resource "aws_subnet" "public" {
+  vpc_id     = aws_vpc.this.id
+  cidr_block = var.public_subnet_cidr
+  availability_zone = var.az
+
+  tags = merge(
+    {
+      Name = "${var.name}-${var.env}-public-subnet"
+    },
+    var.tags
+  )
+}
+
+# --------------------------------------------
+# INTERNET GATEWAY
+# --------------------------------------------
 resource "aws_internet_gateway" "this" {
   vpc_id = aws_vpc.this.id
 
-  tags = merge(var.tags, {
-    Name = "${var.name}-${var.env}-igw"
-  })
+  tags = merge(
+    {
+      Name = "${var.name}-${var.env}-igw"
+    },
+    var.tags
+  )
 }
 
-resource "aws_subnet" "public" {
-  vpc_id                  = aws_vpc.this.id
-  cidr_block              = var.public_subnet_cidr
-  availability_zone       = var.az
-  map_public_ip_on_launch = true
-
-  tags = merge(var.tags, {
-    Name = "${var.name}-${var.env}-public-subnet"
-    Tier = "public"
-  })
-}
-
+# --------------------------------------------
+# ROUTE TABLE + DEFAULT ROUTE
+# --------------------------------------------
 resource "aws_route_table" "public" {
   vpc_id = aws_vpc.this.id
 
-  route {
-    cidr_block = "0.0.0.0/0"
-    gateway_id = aws_internet_gateway.this.id
-  }
+  tags = merge(
+    {
+      Name = "${var.name}-${var.env}-rt"
+    },
+    var.tags
+  )
+}
 
-  tags = merge(var.tags, {
-    Name = "${var.name}-${var.env}-public-rt"
-  })
+resource "aws_route" "public_internet_access" {
+  route_table_id         = aws_route_table.public.id
+  destination_cidr_block = "0.0.0.0/0"
+  gateway_id             = aws_internet_gateway.this.id
 }
 
 resource "aws_route_table_association" "public" {
@@ -46,13 +67,16 @@ resource "aws_route_table_association" "public" {
   route_table_id = aws_route_table.public.id
 }
 
+# --------------------------------------------
+# SECURITY GROUP
+# --------------------------------------------
 resource "aws_security_group" "this" {
   name        = "${var.name}-${var.env}-sg"
-  description = "Demo SG for SSH + HTTP/HTTPS"
+  description = "Security group for public EC2 instance"
   vpc_id      = aws_vpc.this.id
 
   ingress {
-    description = "SSH"
+    description = "SSH access"
     from_port   = 22
     to_port     = 22
     protocol    = "tcp"
@@ -76,14 +100,17 @@ resource "aws_security_group" "this" {
   }
 
   egress {
-    description = "All outbound"
+    description = "Allow all outbound"
     from_port   = 0
     to_port     = 0
     protocol    = "-1"
     cidr_blocks = ["0.0.0.0/0"]
   }
 
-  tags = merge(var.tags, {
-    Name = "${var.name}-${var.env}-sg"
-  })
+  tags = merge(
+    {
+      Name = "${var.name}-${var.env}-sg"
+    },
+    var.tags
+  )
 }

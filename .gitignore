@@ -1,51 +1,141 @@
-### Terraform ###
+#############################################
+# TERRAFORM
+#############################################
+
+# Local Terraform state
 *.tfstate
 *.tfstate.*
-.crash
-.terraform/
-.terraform.lock.hcl
-
-# Local variable override files (never commit secrets)
 terraform.tfvars
 *.auto.tfvars
+
+# Crash logs
+.crash
+
+# Local working directory
+.terraform/
+.terraform.lock.hcl
 
 # Plan files
 *.tfplan
 
-### Ansible ###
-*.retry
-ansible/inventory/hosts.ini
-host_vars/*
-group_vars/*
+# Backend file (enabled only in real infra)
+backend.tf
 
-# If you ever use encrypted vault files, ignore unencrypted forms
+
+#############################################
+# ANSIBLE
+#############################################
+
+# Retry files
+*.retry
+
+# Auto-generated inventory (Terraform)
+ansible/inventory/hosts.yaml
+
+# Ansible cache
+.ansible/*
+ansible/.cache/*
+ansible/tmp/*
+
+# Vault decrypted files (sensitive)
 *.vault
 *.vault.yml
+*.vault.json
 
-### Python (if used for tooling) ###
+
+#############################################
+# SSH / KEYS / SENSITIVE
+#############################################
+
+*.pem
+*.key
+*.pub
+id_rsa
+id_rsa.pub
+id_ed25519
+id_ed25519.pub
+
+
+#############################################
+# PYTHON (tooling / scripts)
+#############################################
+
 __pycache__/
 *.pyc
 *.pyo
 *.pyd
+
+# Virtual envs
 env/
 venv/
+.venv/
 
-### Logs ###
+# Test/coverage
+.pytest_cache/
+.coverage
+htmlcov/
+
+
+#############################################
+# LOGS
+#############################################
+
 *.log
 logs/
+*.out
 
-### System files ###
+
+#############################################
+# OS FILES
+#############################################
+
+# macOS
 .DS_Store
+.AppleDouble
+.LSOverride
+
+# Windows
 Thumbs.db
-
-### Editor ###
-.vscode/
-.idea/
-
-### CI/CD temp ###
-*.bak
-*.tmp
-
-### OS junk ###
 ehthumbs.db
 desktop.ini
+
+# Linux KDE / Gnome
+.directory
+
+
+#############################################
+# EDITOR / IDE
+#############################################
+
+# VSCode
+.vscode/
+
+# JetBrains
+.idea/
+*.iml
+
+# Sublime
+*.sublime-workspace
+*.sublime-project
+
+
+#############################################
+# TEMP / BACKUP
+#############################################
+
+*.bak
+*.tmp
+*.swp
+*.swo
+*~
+
+
+#############################################
+# MISC
+#############################################
+
+# Node (if tooling is ever added)
+node_modules/
+
+# Generated files
+*.generated

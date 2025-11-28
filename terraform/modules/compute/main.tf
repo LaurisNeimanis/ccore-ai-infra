@@ -1,19 +1,48 @@
+# --------------------------------------------
+# AMI LOOKUP (Ubuntu 24.04 LTS)
+# --------------------------------------------
+data "aws_ami" "ubuntu" {
+  most_recent = true
+
+  filter {
+    name   = "name"
+    values = ["ubuntu/images/hvm-ssd/ubuntu-*-amd64-server-*"]
+  }
+
+  filter {
+    name   = "virtualization-type"
+    values = ["hvm"]
+  }
+
+  owners = ["099720109477"] # Canonical
+}
+
+# --------------------------------------------
+# SSH KEYPAIR
+# --------------------------------------------
 resource "aws_key_pair" "this" {
   key_name   = "${var.name}-${var.env}-key"
   public_key = file(var.ssh_public_key_path)
 
-  tags = merge(var.tags, {
-    Name = "${var.name}-${var.env}-key"
-  })
+  tags = merge(
+    {
+      Name = "${var.name}-${var.env}-key"
+    },
+    var.tags
+  )
 }
 
+# --------------------------------------------
+# EC2 INSTANCE
+# --------------------------------------------
 resource "aws_instance" "this" {
-  ami                         = data.aws_ami.ubuntu.id
-  instance_type               = var.instance_type
-  subnet_id                   = var.subnet_id
-  vpc_security_group_ids      = var.security_group_ids
-  key_name                    = aws_key_pair.this.key_name
-  associate_public_ip_address = true
+  ami                    = data.aws_ami.ubuntu.id
+  instance_type          = var.instance_type
+  subnet_id              = var.subnet_id
+  vpc_security_group_ids = var.security_group_ids
+  key_name               = aws_key_pair.this.key_name
+
+  user_data = file("${path.module}/bootstrap.sh")
 
   root_block_device {
     volume_size = var.root_volume_size
@@ -21,11 +50,11 @@ resource "aws_instance" "this" {
     encrypted   = var.root_volume_encrypted
   }
 
-  user_data = file("${path.module}/bootstrap.sh")
-
-  tags = merge(var.tags, {
-    Name = "${var.name}-${var.env}-ec2"
-    Role = "app"
-    Env  = var.env
-  })
+  tags = merge(
+    {
+      Name = "${var.name}-${var.env}-ec2"
+    },
+    var.tags
+  )
 }
+

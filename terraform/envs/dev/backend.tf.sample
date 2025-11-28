@@ -1,0 +1,15 @@
+# -------------------------------------------------------------
+# OPTIONAL REMOTE BACKEND (S3 + DynamoDB)
+# -------------------------------------------------------------
+# Rename this file to backend.tf to enable production-style
+# remote state storage.
+#
+# terraform {
+#   backend "s3" {
+#     bucket         = "<your-s3-bucket>"
+#     key            = "terraform/state/dev/terraform.tfstate"
+#     region         = "eu-central-1"
+#     dynamodb_table = "<your-lock-table>"
+#     encrypt        = true
+#   }
+# }

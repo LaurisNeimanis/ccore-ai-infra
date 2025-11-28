@@ -1,3 +1,6 @@
+# --------------------------------------------
+# TERRAFORM SETTINGS
+# --------------------------------------------
 terraform {
   required_version = ">= 1.5.0"
 
@@ -9,10 +12,16 @@ terraform {
   }
 }
 
+# --------------------------------------------
+# PROVIDER CONFIGURATION
+# --------------------------------------------
 provider "aws" {
   region = var.region
 }
 
+# --------------------------------------------
+# COMMON TAGS
+# --------------------------------------------
 locals {
   common_tags = {
     Project = var.project_name
@@ -21,6 +30,9 @@ locals {
   }
 }
 
+# --------------------------------------------
+# NETWORK MODULE
+# --------------------------------------------
 module "network" {
   source             = "../../modules/network"
   name               = var.project_name
@@ -32,6 +44,9 @@ module "network" {
   tags               = local.common_tags
 }
 
+# --------------------------------------------
+# COMPUTE MODULE
+# --------------------------------------------
 module "compute" {
   source              = "../../modules/compute"
   name                = var.project_name
@@ -49,13 +64,27 @@ module "compute" {
   security_group_ids = [module.network.security_group_id]
 }
 
-resource "local_file" "ansible_inventory" {
-  filename = "${path.module}/../../../ansible/inventory/hosts.ini"
+# --------------------------------------------
+# INSTANCE MAP (FOR ANSIBLE INVENTORY)
+# --------------------------------------------
+locals {
+  instance_map = {
+    app = {
+      public_ip = module.compute.public_ip
+    }
+  }
+}
 
-  content = templatefile("${path.module}/hosts.ini.tmpl", {
-    public_ip = module.compute.public_ip
+# --------------------------------------------
+# AUTO-GENERATED ANSIBLE INVENTORY (YAML)
+# --------------------------------------------
+resource "local_file" "ansible_inventory" {
+  filename = "${path.module}/../../../ansible/inventory/hosts.yaml"
+
+  content = templatefile("${path.module}/../../templates/inventory.tmpl", {
+    hosts = local.instance_map
   })
 
   file_permission      = "0644"
-  directory_permission = "0700"
+  directory_permission = "0755"
 }
