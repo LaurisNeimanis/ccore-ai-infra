@@ -1,6 +1,6 @@
 # Terraform AWS Infrastructure (Modular, Production-Grade)
 
-This repository contains a **fully modular, production-oriented AWS Infrastructure-as-Code setup**, built using **Terraform 1.5+**, following modern DevOps patterns:
+This repository contains a **fully modular, production-oriented AWS Infrastructure-as-Code setup**, built using **Terraform**, following modern DevOps patterns:
 
 - Strict separation between **modules** and **environments**
 - Clean dependency flow (network → compute)

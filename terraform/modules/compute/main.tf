@@ -42,12 +42,26 @@ resource "aws_instance" "this" {
   vpc_security_group_ids = var.security_group_ids
   key_name               = aws_key_pair.this.key_name
 
+  # Assign public IPv4 ONLY to this instance
+  associate_public_ip_address = true
+
+  # Cloud-init bootstrap
   user_data = file("${path.module}/bootstrap.sh")
 
+  # Root volume configuration
   root_block_device {
     volume_size = var.root_volume_size
     volume_type = var.root_volume_type
     encrypted   = var.root_volume_encrypted
+  }
+
+  # --------------------------------------------
+  # IMDSv2 — AWS security best practice
+  # --------------------------------------------
+  metadata_options {
+    http_endpoint               = "enabled"
+    http_tokens                 = "required"   # IMDSv2 only
+    http_put_response_hop_limit = 2
   }
 
   tags = merge(
@@ -57,4 +71,3 @@ resource "aws_instance" "this" {
     var.tags
   )
 }
-
