@@ -1,7 +1,12 @@
-- name: Configure app server
+# =====================================================================
+# Application Server — modular role-based deployment playbook
+# =====================================================================
+
+- name: Configure application server
   hosts: app
   become: true
+  any_errors_fatal: true
 
   roles:
-    - docker-install
-    - app-deployment
+    - docker
+    - app_deploy

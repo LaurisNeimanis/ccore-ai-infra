@@ -1,33 +1,84 @@
 flowchart TD
 
-    %% === Developer + CI ===
-    A[Developer Commit] --> B[GitHub Actions CI]
+    %% =========================
+    %% LAYERS
+    %% =========================
 
-    %% Terraform pipeline
-    B --> C[Terraform Init / Validate / Plan / Apply]
+    subgraph L0["Operator"]
+        OP["Operator / Developer"]
+    end
 
-    %% Remote state (recommended)
-    C --> D[S3 Remote State + DynamoDB Lock]
+    subgraph L1["Terraform Layer"]
+        TF_APPLY["Terraform Apply (envs/dev)"]
+        MOD_NET["Network Module (VPC, Subnet, IGW, Route Table, SG)"]
+        MOD_CMP["Compute Module (EC2, AMI lookup, KeyPair, bootstrap.sh)"]
+        INV_FILE["ansible/inventory/hosts.yaml"]
+    end
 
-    %% Terraform modules
-    C --> E[VPC Module]
-    C --> F[EC2 Module]
-    C --> G[Security Groups]
+    subgraph L2["AWS Infrastructure"]
+        VPC["VPC"]
+        SUBNET["Public Subnet"]
+        IGW["Internet Gateway"]
+        RT["Route Table"]
+        SG["Security Group"]
+        EC2["EC2 Instance (Ubuntu 24.04)"]
+    end
 
-    %% Terraform outputs → Ansible
-    C --> H[Terraform Outputs]
-    H --> I[Generate Ansible Inventory]
+    subgraph L3["Bootstrap Layer"]
+        CI_BOOT["cloud-init Bootstrap"]
+        READY["Instance Ready for Ansible<br/>Python3 Installed + SSH + readiness marker"]
+    end
 
-    %% Ansible deployment
-    B --> J[Ansible Provisioning]
+    subgraph L4["Ansible Layer"]
+        APB["Ansible Playbook (ansible/playbook.yml)"]
+        ROLE_DOCKER["Role: docker<br/>Install Docker Engine + Compose"]
+        ROLE_APP["Role: app_deploy<br/>Render templates + pull GHCR images"]
+    end
 
-    J --> K[Install Docker Engine]
-    J --> L[Generate Docker Compose + Pull GHCR Images]
-    J --> M[Apply Nginx Reverse Proxy + SSL]
+    subgraph L5["Application Layer (Docker)"]
+        COMPOSE["/opt/ccore-ai/ Docker Compose Stack"]
+        BACKEND["Backend Container (GHCR image)"]
+        FRONTEND["Frontend Container (GHCR image)"]
+        NGINX["Nginx Reverse Proxy Container"]
+        HTTPS["Public HTTPS Endpoint"]
+    end
 
-    %% App deployment
-    L --> N["Backend + Frontend (GHCR Images)"]
-    N --> O[Docker Compose Stack Running on EC2]
+    %% =========================
+    %% FLOWS
+    %% =========================
 
-    %% Public access
-    M --> P[Public HTTPS Endpoint]
+    OP --> TF_APPLY
+    OP --> APB
+
+    TF_APPLY --> MOD_NET
+    TF_APPLY --> MOD_CMP
+
+    MOD_NET --> VPC
+    MOD_NET --> SUBNET
+    MOD_NET --> IGW
+    MOD_NET --> RT
+    MOD_NET --> SG
+
+    MOD_CMP --> EC2
+    VPC --> EC2
+    SUBNET --> EC2
+    SG --> EC2
+
+    TF_APPLY --> INV_FILE
+
+    EC2 --> CI_BOOT
+    CI_BOOT --> READY
+
+    APB --> INV_FILE
+    APB --> ROLE_DOCKER
+    APB --> ROLE_APP
+    READY --> APB
+
+    ROLE_DOCKER --> COMPOSE
+    ROLE_APP --> COMPOSE
+
+    COMPOSE --> BACKEND
+    COMPOSE --> FRONTEND
+    COMPOSE --> NGINX
+
+    NGINX --> HTTPS

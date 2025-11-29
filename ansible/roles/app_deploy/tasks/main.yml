@@ -1,0 +1,42 @@
+# =====================================================================
+# Application Deployment — clean demo version
+# =====================================================================
+
+- name: Ensure base application directory exists
+  ansible.builtin.file:
+    path: /opt/ccore-ai
+    state: directory
+    mode: "0755"
+
+- name: Ensure nginx directory exists
+  ansible.builtin.file:
+    path: /opt/ccore-ai/nginx
+    state: directory
+    mode: "0755"
+
+# ----------------------------------------------------
+# Deploy application config
+# ----------------------------------------------------
+- name: Deploy docker-compose.yml
+  ansible.builtin.template:
+    src: docker-compose.yml.j2
+    dest: /opt/ccore-ai/docker-compose.yml
+    mode: "0644"
+  register: compose_file_change
+
+- name: Deploy nginx.conf
+  ansible.builtin.template:
+    src: nginx.conf.j2
+    dest: /opt/ccore-ai/nginx/nginx.conf
+    mode: "0644"
+  register: nginx_file_change
+
+# ----------------------------------------------------
+# Start or restart stack — ONLY when needed
+# ----------------------------------------------------
+- name: Start application stack (docker compose)
+  ansible.builtin.command:
+    cmd: docker compose -f docker-compose.yml up -d
+    chdir: /opt/ccore-ai
+  when: compose_file_change.changed or nginx_file_change.changed
+  changed_when: true

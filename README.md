@@ -1,213 +1,185 @@
-# DevOps AWS Terraform + Ansible Stack
+# Infrastructure Architect Demo — AWS Terraform + Ansible + Docker Stack
 
-<p>
-  <img src="https://img.shields.io/badge/Terraform-5C4EE5?logo=terraform&logoColor=white" />
-  <img src="https://img.shields.io/badge/Ansible-EE0000?logo=ansible&logoColor=white" />
-  <img src="https://img.shields.io/badge/Docker-2496ED?logo=docker&logoColor=white" />
-  <img src="https://img.shields.io/badge/AWS-FF9900?logo=amazon-aws&logoColor=white" />
-</p>
+This repository demonstrates a **production-grade, modular Infrastructure-as-Code architecture** built using:
 
-<p>
-  <img src="https://github.com/LaurisNeimanis/ccore-ai-infra/actions/workflows/terraform-ci.yml/badge.svg" />
-  <img src="https://github.com/LaurisNeimanis/ccore-ai-infra/actions/workflows/ansible-lint.yml/badge.svg" />
-</p>
+- **Terraform** (modular AWS VPC + EC2 provisioning)
+- **cloud-init** (bootstrap & provisioning preparation)
+- **Ansible** (server configuration & container stack deployment)
+- **Docker + GHCR images** (pull-based, immutable deployments)
+- **GitHub Actions CI** (linting & validation)
 
-Infrastructure-as-Code templates for AWS using **Terraform** and **Ansible**.  
-This repository demonstrates a clean, production‑grade DevOps workflow with full application integration.
+The project intentionally mirrors real-world DevOps, SRE and Infrastructure Architect standards:  
+clean separation of concerns, reproducibility, automated provisioning, minimalism, and clarity.
 
 ---
 
-## 1. Application Integration (ccore-ai-demo)
+## 1. High-Level Architecture
 
-This infrastructure stack deploys the application layer from a separate repository:
+```
+Terraform → AWS (VPC, EC2) → cloud-init → Ansible → Docker Compose → GHCR images
+```
 
-🔗 https://github.com/LaurisNeimanis/ccore-ai-demo
+Each layer is strictly separated:
 
-The EC2 instance uses **pre‑built Docker images** from GHCR:
+### **Terraform (Infrastructure)**
+- Creates VPC, subnet, route table, security group
+- Deploys EC2 Ubuntu 24.04 instance
+- Looks up AMIs dynamically
+- Generates Ansible inventory automatically
+- Injects cloud-init bootstrap script
+
+**Detailed Terraform documentation:**  
+`terraform/README.md`
+
+### **cloud-init (Machine Bootstrap)**
+- Prepares instance for configuration
+- Installs Python3
+- Enables SSH
+- Writes readiness marker to `/var/log/bootstrap_ready.log`
+
+### **Ansible (Configuration & Deployment)**
+- Installs Docker Engine & Compose
+- Creates `/opt/ccore-ai` deployment path
+- Renders templated configs (`docker-compose.yml`, `nginx.conf`)
+- Pulls GHCR images (backend, frontend, nginx)
+- Runs container stack with idempotent Docker Compose
+
+**Detailed Ansible documentation:**  
+`ansible/README.md`
+
+### **Application Layer**
+All application components come from **pre-built GHCR images**, not from local builds:
 
 - `ghcr.io/laurisneimanis/ccore-ai-demo-backend:latest`
 - `ghcr.io/laurisneimanis/ccore-ai-demo-frontend:latest`
 
-No application build happens on EC2 — deployments are fully **pull‑based**.
-
-Security groups follow _least privilege_ principles and expose only **HTTPS** publicly.
-
----
-
-## 2. Terraform State (Production Recommendation)
-
-Production-grade setups should use:
-
-- **S3** for remote Terraform state
-- **DynamoDB** for Terraform lock table
-
-This repository keeps state **local** for demo purposes.
+This ensures:
+- Immutable artifacts  
+- Reproducible deployments  
+- Zero source code on the server  
+- No Dockerfiles in this repo  
 
 ---
 
-## 3. Prerequisites
-
-- Terraform ≥ 1.6
-- Ansible ≥ 2.15
-- AWS CLI configured (SSO or access keys)
-- SSH access enabled (cloud-init prepares the EC2 instance automatically)
-- GitHub Actions runners
-
----
-
-## 4. Architecture Overview
-
-```
-Terraform → AWS infra → cloud-init → Ansible → Docker → GHCR images → Full app stack
-```
-
-EC2 instances are prepared using **cloud-init**, which installs Python3 and writes a readiness marker (`/var/log/bootstrap_ready.log`).
-
-```mermaid
-flowchart TD
-    A[Terraform Apply] --> B[VPC + Subnet + Route Table]
-    A --> C[EC2 Instance]
-    A --> D[Generate hosts.ini]
-
-    C --> E[cloud-init bootstrap]
-    E --> F[Ansible Playbook]
-
-    F --> G[Docker Install Role]
-    F --> H["App Deployment (GHCR Images)"]
-
-    H --> I[Docker Compose Stack]
-    I --> J[Backend + Frontend from ccore-ai-demo]
-```
-
-> Full detailed architecture diagram: `diagrams/architecture.mmd`
-
----
-
-## 5. Folder Structure
+## 2. Repository Structure
 
 ```
 ccore-ai-infra/
-├── terraform/               # AWS IaC (modules + environments)
-│   ├── modules/             # Reusable Terraform modules (network, compute)
-│   ├── envs/                # Dev/prod environment stacks
-│   └── README.md            # Terraform usage instructions
+├── terraform/               # AWS infrastructure (modules + environments)
+│   ├── modules/             # Reusable IaC components (network, compute)
+│   ├── envs/                # Dev/prod Terraform stacks
+│   └── README.md            # Terraform layer documentation
 │
-├── ansible/                 # Server provisioning (Docker, Nginx, app)
-│   ├── inventory/           # Auto-generated EC2 host inventory
-│   ├── roles/               # Modular roles (docker-install, app deployment)
-│   ├── playbook.yml         # Main provisioning entrypoint
-│   └── README.md            # Ansible documentation
+├── ansible/                 # Provisioning and configuration management
+│   ├── inventory/           # Auto-generated by Terraform
+│   ├── roles/               # docker installation + app deployment
+│   ├── playbook.yml
+│   └── README.md            # Ansible layer documentation
 │
-├── diagrams/                # Architecture diagrams (Mermaid)
-│   └── architecture.mmd
+├── diagrams/
+│   └── architecture.mmd     # Mermaid architecture diagram
 │
-├── .github/                 # CI (Terraform + Ansible Lint)
-│   └── workflows/
-│       ├── ansible-lint.yml
-│       └── terraform-ci.yml
+├── .github/
+│   └── workflows/           # Terraform validate + Ansible Lint CI
 │
 ├── LICENSE
-└── README.md
+└── README.md                # (this file)
 ```
 
-Terraform provisions infrastructure → generates:
+Everything is compartmentalized for maintainability and scalability.
 
-```
-ansible/inventory/hosts.ini
-```
+---
 
-Example:
+## 3. Architecture Diagram
 
-```
-[app]
-3.67.196.100 ansible_user=ubuntu
+```mermaid
+flowchart TD
+    A["Terraform (modules + envs)"] --> B["VPC + Subnet + SG + Route Table"]
+    A --> C[EC2 Instance]
+    A --> D[Generate Ansible Inventory]
+
+    C --> E[cloud-init Bootstrap]
+    E --> F[Ansible Provisioning]
+
+    F --> G[Install Docker Engine]
+    F --> H[Render compose + nginx.conf]
+
+    H --> I[Docker Compose Stack]
+    I --> J["Backend + Frontend + Nginx (GHCR images)"]
 ```
 
 ---
 
-## 6. CI Status
+## 4. CI Pipeline
 
-- **Terraform CI** – fmt, validate, init, plan
-- **Ansible Lint** – checks roles, tasks and templates
-- CI pipeline runs automatically on **push / PR**
+This repository includes automated validation:
+
+### **Terraform CI**
+- `fmt`
+- `validate`
+- `init`
+- `plan` (no apply)
+
+### **Ansible Lint CI**
+- Role/task/template linting
+
+CI is triggered on **push and pull requests**.
 
 ---
 
-## 7. Usage
+## 5. Usage
 
-### Step 1 — Configure AWS
-
-Use either:
-
-- AWS SSO
-- Access keys
-- ENV variables (`AWS_ACCESS_KEY_ID`, `AWS_SECRET_ACCESS_KEY`)
-
-### Step 2 — Initialize Terraform
-
+### **1 — Provision AWS Infrastructure**
 ```
 cd terraform/envs/dev
 terraform init
-```
-
-### Step 3 — Apply infrastructure
-
-```
 terraform apply
 ```
 
-### Step 4 — Run Ansible provisioning
-
+### **2 — Provision Server with Ansible**
 ```
-ansible-playbook -i ansible/inventory/hosts.ini ansible/playbook.yml
+ansible-playbook -i ansible/inventory/hosts.yaml ansible/playbook.yml
 ```
 
-This installs:
+### Result
+- Docker installed  
+- Compose stack deployed  
+- Backend + frontend + nginx running at EC2 public IP  
 
-- Docker Engine
-- Docker Compose plugin
-- Nginx reverse proxy
-- SSL (self‑signed, demo mode)
-- GHCR images
-- Full application stack under `/opt/ccore-ai`
-
----
-
-### Redeploy After New Image Builds
-
-When **ccore-ai-demo** publishes new images:
-
+### Redeploy Application (new GHCR image build)
 ```
 docker compose -f /opt/ccore-ai/docker-compose.yml pull
 docker compose -f /opt/ccore-ai/docker-compose.yml up -d
 ```
 
-Playbook is **idempotent** — safe to run any time.
+---
+
+## 6. Technologies Used
+
+- **AWS**: VPC, Subnet, IGW, EC2
+- **Terraform**: modules, envs, dynamic inventory
+- **Ansible**: roles, templates, provisioning
+- **cloud-init**: bootstrap automation
+- **Docker + GHCR**: pull-based deployments
+- **GitHub Actions**: CI validation pipelines
 
 ---
 
-## 8. Technologies Used
+## 7. Purpose
 
-- Terraform
-- Ansible
-- Docker & Docker Compose
-- AWS EC2 / VPC
-- cloud-init
-- GitHub Actions
+This repository is built to demonstrate:
 
----
+- Enterprise-level IaC design  
+- Modular, scalable cloud architecture  
+- Automated end-to-end provisioning workflows  
+- Clear Infrastructure Architect thinking  
+- Real-world DevOps execution with Terraform + Ansible  
+- Zero-drift design with CI, linting, templates and automation  
 
-## 9. Purpose
-
-Designed to:
-
-- Demonstrate real DevOps workflows
-- Provide reusable AWS IaC templates
-- Serve as a high‑quality portfolio project
-- Maintain clarity and minimalism
+It is suitable as a **portfolio project**, **interview reference**, and **DevOps architecture showcase**.
 
 ---
 
-## 10. License
+## 8. License
 
 MIT License.
