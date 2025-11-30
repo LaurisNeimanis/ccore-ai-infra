@@ -1,5 +1,5 @@
 # =====================================================================
-# Docker Engine Installation — Ubuntu 24.04 LTS
+# Docker Engine Installation
 # Clean, minimal, production-correct version
 # =====================================================================
 
@@ -10,7 +10,7 @@
       - curl
       - gnupg
     state: present
-    update_cache: yes
+    update_cache: true
 
 - name: Ensure keyrings directory exists
   ansible.builtin.file:
@@ -18,7 +18,7 @@
     state: directory
     mode: "0755"
 
-- name: Add Docker GPG key (Ubuntu 24.04 method)
+- name: Add Docker GPG key
   ansible.builtin.get_url:
     url: https://download.docker.com/linux/ubuntu/gpg
     dest: /etc/apt/keyrings/docker.asc
@@ -31,7 +31,7 @@
       https://download.docker.com/linux/ubuntu
       {{ ansible_distribution_release }} stable
     state: present
-    update_cache: yes
+    update_cache: true
 
 - name: Install Docker Engine
   ansible.builtin.apt:
@@ -53,4 +53,4 @@
   ansible.builtin.user:
     name: ubuntu
     groups: docker
-    append: yes
+    append: true

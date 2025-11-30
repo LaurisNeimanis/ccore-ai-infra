@@ -7,6 +7,12 @@
   become: true
   any_errors_fatal: true
 
+  pre_tasks:
+    - name: Wait for cloud-init to finish
+      ansible.builtin.command: cloud-init status --wait
+      register: cloudinit
+      changed_when: false
+
   roles:
     - docker
     - app_deploy
