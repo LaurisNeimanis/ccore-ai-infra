@@ -10,9 +10,10 @@ flowchart TD
 
     subgraph L1["Terraform Layer"]
         TF_APPLY["Terraform Apply (envs/dev)"]
-        MOD_NET["Network Module (VPC, Subnet, IGW, Route Table, SG)"]
-        MOD_CMP["Compute Module (EC2, AMI lookup, KeyPair, bootstrap.sh)"]
-        INV_FILE["ansible/inventory/hosts.yaml"]
+        MOD_VPC["terraform-aws-modules/vpc"]
+        MOD_SG["terraform-aws-modules/security-group"]
+        MOD_EC2["terraform-aws-modules/ec2-instance<br/>AMI lookup + cloud-init (bootstrap.yaml)"]
+        INV_FILE["ansible/inventory/hosts.yaml<br/>(generated via local_file)"]
     end
 
     subgraph L2["AWS Infrastructure"]
@@ -20,27 +21,27 @@ flowchart TD
         SUBNET["Public Subnet"]
         IGW["Internet Gateway"]
         RT["Route Table"]
-        SG["Security Group"]
+        SG_AWS["Security Group"]
         EC2["EC2 Instance (Ubuntu 24.04)"]
     end
 
     subgraph L3["Bootstrap Layer"]
-        CI_BOOT["cloud-init Bootstrap"]
-        READY["Instance Ready for Ansible<br/>Python3 Installed + SSH + readiness marker"]
+        CI_BOOT["cloud-init Bootstrap (bootstrap.yaml)"]
+        READY["Instance Ready<br/>Python3 Installed + SSH + cloud-init done"]
     end
 
     subgraph L4["Ansible Layer"]
-        APB["Ansible Playbook (ansible/playbook.yml)"]
+        APB["Ansible Playbook"]
         ROLE_DOCKER["Role: docker<br/>Install Docker Engine + Compose"]
         ROLE_APP["Role: app_deploy<br/>Render templates + pull GHCR images"]
     end
 
     subgraph L5["Application Layer (Docker)"]
         COMPOSE["/opt/ccore-ai/ Docker Compose Stack"]
-        BACKEND["Backend Container (GHCR image)"]
-        FRONTEND["Frontend Container (GHCR image)"]
-        NGINX["Nginx Reverse Proxy Container"]
-        HTTPS["Public HTTPS Endpoint"]
+        BACKEND["Backend Container (GHCR)"]
+        FRONTEND["Frontend Container (GHCR)"]
+        NGINX["Nginx Reverse Proxy"]
+        HTTP["Public HTTP Endpoint (Port 80)"]
     end
 
     %% =========================
@@ -50,29 +51,26 @@ flowchart TD
     OP --> TF_APPLY
     OP --> APB
 
-    TF_APPLY --> MOD_NET
-    TF_APPLY --> MOD_CMP
-
-    MOD_NET --> VPC
-    MOD_NET --> SUBNET
-    MOD_NET --> IGW
-    MOD_NET --> RT
-    MOD_NET --> SG
-
-    MOD_CMP --> EC2
-    VPC --> EC2
-    SUBNET --> EC2
-    SG --> EC2
-
+    TF_APPLY --> MOD_VPC
+    TF_APPLY --> MOD_SG
+    TF_APPLY --> MOD_EC2
     TF_APPLY --> INV_FILE
+
+    MOD_VPC --> VPC
+    MOD_VPC --> SUBNET
+    MOD_VPC --> IGW
+    MOD_VPC --> RT
+
+    MOD_SG --> SG_AWS
+
+    MOD_EC2 --> EC2
 
     EC2 --> CI_BOOT
     CI_BOOT --> READY
+    READY --> APB
 
-    APB --> INV_FILE
     APB --> ROLE_DOCKER
     APB --> ROLE_APP
-    READY --> APB
 
     ROLE_DOCKER --> COMPOSE
     ROLE_APP --> COMPOSE
@@ -81,4 +79,4 @@ flowchart TD
     COMPOSE --> FRONTEND
     COMPOSE --> NGINX
 
-    NGINX --> HTTPS
+    NGINX --> HTTP

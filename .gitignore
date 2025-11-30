@@ -18,9 +18,6 @@ terraform.tfvars
 # Plan files
 *.tfplan
 
-# Backend file (enabled only in real infra)
-backend.tf
-
 
 #############################################
 # ANSIBLE

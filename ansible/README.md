@@ -45,12 +45,15 @@ Notes:
 
 ### Terraform
 
--   Creates AWS VPC, subnet, route table, security group
--   Deploys EC2 instance
--   Injects cloud-init (installs Python3 and writes readiness marker)
--   Generates Ansible inventory:
+- Creates AWS VPC, subnet, route table, security group
+- Deploys EC2 instance
+- Injects updated **cloud-init**:
+  - updates apt
+  - installs Python3 (required for Ansible)
+  - ensures SSH is running
+  - writes bootstrap marker  
+- Generates Ansible inventory:
 
-    
 ```
 ansible/inventory/hosts.yaml
 ```
@@ -155,7 +158,25 @@ flowchart TD
 
 ------------------------------------------------------------------------
 
-## 6. Good Practices Applied
+## 6. Linting & Quality Checks
+
+The Ansible layer is validated with strict linting tools:
+
+### Local linting
+
+```
+yamllint ansible/
+ansible-lint ansible/
+```
+
+The repository includes `.yamllint` configuration:
+
+- `document-start` disabled (no need for `---`)
+- strict truthy checking (`true/false` only)
+
+------------------------------------------------------------------------
+
+## 7. Good Practices Applied
 
 -   Pull-based server deployment (no local builds)
 -   Clean separation: Terraform → Infra, Ansible → Config, GHCR → Images
@@ -166,14 +187,14 @@ flowchart TD
 
 ------------------------------------------------------------------------
 
-## 7. Summary
+## 8. Summary
 
 This Ansible layer provides:
 
--   Clean post-provision EC2 configuration
--   Deterministic deployment using GHCR images
--   Templated configuration (Compose + Nginx)
--   Fully working containerized stack
+- Clean post-provision EC2 configuration  
+- Deterministic deployment using GHCR images  
+- Templated configuration (Compose + Nginx)  
+- Automated linting and validation  
+- Fully working containerized stack  
 
-All tightly aligned with the broader **ccore-ai** infrastructure
-workflow.
+All tightly aligned with the broader **ccore-ai** infrastructure workflow.

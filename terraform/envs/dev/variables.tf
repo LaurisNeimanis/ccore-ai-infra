@@ -34,6 +34,12 @@ variable "az" {
   default     = "eu-central-1a"
 }
 
+variable "allowed_ssh_cidr" {
+  type        = string
+  description = "Allowed CIDR block for incoming SSH access."
+  default     = "0.0.0.0/0"
+}
+
 variable "instance_type" {
   type        = string
   description = "EC2 instance type to deploy."
@@ -46,12 +52,6 @@ variable "ssh_public_key_path" {
   default     = "~/.ssh/id_ed25519.pub"
 }
 
-variable "allowed_ssh_cidr" {
-  type        = string
-  description = "Allowed CIDR block for incoming SSH access."
-  default     = "0.0.0.0/0"
-}
-
 variable "root_volume_size" {
   type        = number
   description = "EBS root volume size in GB."
@@ -60,7 +60,7 @@ variable "root_volume_size" {
 
 variable "root_volume_type" {
   type        = string
-  description = "EBS root volume type (gp3, io1, etc.)."
+  description = "EBS root volume type."
   default     = "gp3"
 }
 
