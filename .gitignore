@@ -13,7 +13,6 @@ terraform.tfvars
 
 # Local working directory
 .terraform/
-.terraform.lock.hcl
 
 # Plan files
 *.tfplan
