@@ -52,6 +52,20 @@ module "vpc" {
   tags = local.common_tags
 }
 
+# --------------------------------------------
+# DISABLE DEFAULT SECURITY GROUP RULES
+# --------------------------------------------
+resource "aws_default_security_group" "default" {
+  vpc_id = module.vpc.vpc_id
+
+  # Remove all ingress/egress (best practice)
+  ingress = []
+  egress  = []
+
+  tags = {
+    Name = "${var.project_name}-${var.env}-default-sg"
+  }
+}
 
 # --------------------------------------------
 # SECURITY GROUP
@@ -97,15 +111,12 @@ module "sg_instance" {
     }
   ]
 
-  # IPv6 egress is NOT defined here because the ec2-instance module
-  # automatically creates an IPv6 "::/0" egress rule when ipv6_address_count = 1.
-  # Defining it in this SG would cause a duplicate rule error.
-  #egress_with_ipv6_cidr_blocks = [
-  #  {
-  #    rule             = "all-all"
-  #    ipv6_cidr_blocks = "::/0"
-  #  }
-  #]
+  egress_with_ipv6_cidr_blocks = [
+    {
+      rule             = "all-all"
+      ipv6_cidr_blocks = "::/0"
+    }
+  ]
 
   tags = local.common_tags
 }
@@ -114,37 +125,25 @@ module "sg_instance" {
 # EC2 INSTANCE
 # --------------------------------------------
 module "ec2" {
-  source  = "terraform-aws-modules/ec2-instance/aws"
-  version = "~> 6.0"
+  source = "../../modules/ec2-instance"
 
-  name = "${var.project_name}-${var.env}-instance"
-
-  create_security_group = false
-
+  name          = "${var.project_name}-${var.env}-instance"
   ami           = data.aws_ssm_parameter.ubuntu_2404.value
   instance_type = var.instance_type
+  subnet_id     = module.vpc.public_subnets[0]
 
-  subnet_id              = module.vpc.public_subnets[0]
-  vpc_security_group_ids = [module.sg_instance.security_group_id]
-
-  ipv6_address_count = 1
+  security_group_ids = [module.sg_instance.security_group_id]
 
   key_name = aws_key_pair.this.key_name
 
+  ipv6_address_count          = 1
   associate_public_ip_address = true
-  user_data                   = file("${path.module}/bootstrap/bootstrap.yaml")
 
-  root_block_device = {
-    volume_size = var.root_volume_size
-    volume_type = var.root_volume_type
-    encrypted   = var.root_volume_encrypted
-  }
+  user_data = file("${path.module}/bootstrap/bootstrap.yaml")
 
-  metadata_options = {
-    http_tokens                 = "required"
-    http_endpoint               = "enabled"
-    http_put_response_hop_limit = 2
-  }
+  root_volume_size      = var.root_volume_size
+  root_volume_type      = var.root_volume_type
+  root_volume_encrypted = var.root_volume_encrypted
 
   tags = local.common_tags
 }
