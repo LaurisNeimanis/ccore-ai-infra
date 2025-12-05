@@ -2,27 +2,39 @@
 
 This repository demonstrates a **production-grade, modular Infrastructure-as-Code architecture** built with:
 
-- **Terraform** (official terraform-aws-modules: VPC, Security Group, EC2)
-- **cloud-init** (bootstrap preparation before configuration)
+- **Terraform**  
+  - Official terraform-aws-modules for **VPC** and **Security Groups**  
+  - A **custom EC2 module** (wrapping `aws_instance` for full control)
+- **cloud-init** (bootstrap preparation before Ansible runs)
 - **Ansible** (Docker installation & pull-based deployment)
-- **Docker + GHCR** (immutable images, no builds on server)
+- **Docker + GHCR** (immutable images, no builds on the server)
 - **GitHub Actions CI** (Terraform validation + Ansible linting)
 
-The project mirrors real-world SRE / DevOps / Infrastructure Architect standards:
-**clear separation of concerns, reproducibility, modularity, and production-style workflows.**
+This mirrors real-world SRE / DevOps / Infrastructure Architect patterns:
+**clean separation of concerns, modularity, reproducibility, and production-style workflows.**
 
 ---
 
 # 1. High-Level Architecture
 
 ```
-Terraform → AWS (VPC, SG, EC2) → cloud-init → Ansible → Docker Compose → GHCR images
+Terraform → AWS (VPC, SG, EC2 via custom module)
+         → cloud-init
+         → Ansible
+         → Docker Compose
+         → GHCR container images
 ```
+
+> **Note**  
+> `terraform.tfvars` is intentionally included for demonstration purposes to ensure full reproducibility.  
+> It contains no sensitive data and is safe to store in this repository for the demo.
+
 
 ### Terraform (Infrastructure Layer)
 - Provisions **VPC**, **public subnet**, **internet gateway**, **route table**
 - Creates **Security Group** for SSH + HTTP/HTTPS
-- Deploys EC2 (Ubuntu 24.04) using official AWS module
+- Uses official AWS Terraform modules for all networking + security
+- Deploys EC2 using a **custom lightweight EC2 module** (thin wrapper around `aws_instance`)
 - Performs AMI lookup through **SSM Parameter Store**
 - Injects **cloud-init YAML** for machine bootstrap
 - Auto-generates Ansible inventory (`ansible/inventory/hosts.yaml`)
@@ -68,7 +80,7 @@ ccore-ai-infra/
 
 ```mermaid
 flowchart TD
-    A["Terraform (envs + AWS modules)"] --> B["VPC + Subnet + IGW + Route Table"]
+     A["Terraform (envs + AWS modules + custom EC2 module)"]
     A --> C[Security Group]
     A --> D["EC2 Instance (Ubuntu 24.04)"]
     A --> E[Generate hosts.yaml]
@@ -127,7 +139,7 @@ docker compose -f /opt/ccore-ai/docker-compose.yml up -d
 # 6. Technologies Used
 
 - AWS: VPC, Subnet, IGW, EC2
-- Terraform: AWS modules, cloud-init, inventory generation
+- Terraform: AWS modules + custom EC2 module, cloud-init, inventory generation
 - Ansible: roles, templates, provisioning
 - Docker + GHCR: immutable deployments
 - GitHub Actions CI

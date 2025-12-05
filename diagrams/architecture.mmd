@@ -12,7 +12,7 @@ flowchart TD
         TF_APPLY["Terraform Apply (envs/dev)"]
         MOD_VPC["terraform-aws-modules/vpc"]
         MOD_SG["terraform-aws-modules/security-group"]
-        MOD_EC2["terraform-aws-modules/ec2-instance<br/>AMI lookup + cloud-init (bootstrap.yaml)"]
+        MOD_EC2["modules/ec2-instance (custom)<br/>AMI lookup + cloud-init (bootstrap.yaml)"]
         INV_FILE["ansible/inventory/hosts.yaml<br/>(generated via local_file)"]
     end
 
