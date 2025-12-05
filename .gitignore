@@ -5,7 +5,6 @@
 # Local Terraform state
 *.tfstate
 *.tfstate.*
-terraform.tfvars
 *.auto.tfvars
 
 # Crash logs
