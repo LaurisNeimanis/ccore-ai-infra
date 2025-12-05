@@ -25,11 +25,6 @@ Terraform → AWS (VPC, SG, EC2 via custom module)
          → GHCR container images
 ```
 
-> **Note**  
-> `terraform.tfvars` is intentionally included for demonstration purposes to ensure full reproducibility.  
-> It contains no sensitive data and is safe to store in this repository for the demo.
-
-
 ### Terraform (Infrastructure Layer)
 - Provisions **VPC**, **public subnet**, **internet gateway**, **route table**
 - Creates **Security Group** for SSH + HTTP/HTTPS
@@ -73,6 +68,10 @@ ccore-ai-infra/
 ├── .github/          # CI pipelines (Terraform + Ansible)
 └── README.md         # Root documentation
 ```
+
+> **Note**  
+> `terraform.tfvars` is intentionally included for demonstration purposes to ensure full reproducibility.  
+> It contains no sensitive data and is safe to store in this repository for the demo.
 
 ---
 
