@@ -44,6 +44,10 @@ terraform/
 
 ```
 
+> **Note**  
+> `terraform.tfvars` is intentionally included for demonstration purposes to ensure full reproducibility.  
+> It contains no sensitive data and is safe to store in this repository for the demo.
+
 **Official AWS modules provide all VPC and Security Group logic.**  
 **A small custom module wraps EC2 instance creation.**  
 **Environments contain configuration + wiring only.**
