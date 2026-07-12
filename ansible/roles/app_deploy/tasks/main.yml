@@ -22,14 +22,14 @@
     src: docker-compose.yml.j2
     dest: /opt/ccore-ai/docker-compose.yml
     mode: "0644"
-  register: compose_file_change
+  register: app_deploy_compose_file_change
 
 - name: Deploy nginx.conf
   ansible.builtin.template:
     src: nginx.conf.j2
     dest: /opt/ccore-ai/nginx/nginx.conf
     mode: "0644"
-  register: nginx_file_change
+  register: app_deploy_nginx_file_change
 
 # ----------------------------------------------------
 # Start or restart stack — ONLY when needed
@@ -38,5 +38,7 @@
   ansible.builtin.command:
     cmd: docker compose -f docker-compose.yml up -d
     chdir: /opt/ccore-ai
-  when: compose_file_change.changed or nginx_file_change.changed
+  when:
+    - app_deploy_compose_file_change.changed or
+      app_deploy_nginx_file_change.changed
   changed_when: true

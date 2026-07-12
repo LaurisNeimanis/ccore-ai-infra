@@ -29,7 +29,7 @@ provider "aws" {
 # --------------------------------------------
 module "vpc" {
   source  = "terraform-aws-modules/vpc/aws"
-  version = "~> 6.0"
+  version = "6.6.1"
 
   name = "${var.project_name}-${var.env}-vpc"
   cidr = var.vpc_cidr
@@ -72,7 +72,7 @@ resource "aws_default_security_group" "default" {
 # --------------------------------------------
 module "sg_instance" {
   source  = "terraform-aws-modules/security-group/aws"
-  version = "~> 5.0"
+  version = "5.3.1"
 
   name            = "${var.project_name}-${var.env}-sg"
   use_name_prefix = false

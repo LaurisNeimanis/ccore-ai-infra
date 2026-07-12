@@ -16,6 +16,8 @@ jobs:
 
             - name: Setup Terraform
               uses: hashicorp/setup-terraform@v3
+              with:
+                  terraform_version: "1.14.0"
 
             - name: Terraform Format
               working-directory: terraform/envs/dev
@@ -23,7 +25,7 @@ jobs:
 
             - name: Terraform Init
               working-directory: terraform/envs/dev
-              run: terraform init -backend=false
+              run: terraform init -backend=false -input=false -lockfile=readonly
 
             - name: Terraform Validate
               working-directory: terraform/envs/dev
