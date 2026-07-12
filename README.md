@@ -1,17 +1,17 @@
 # Infrastructure Architect Demo — AWS Terraform + Ansible + Docker Stack
 
-This repository demonstrates a **production-grade, modular Infrastructure-as-Code architecture** built with:
+This repository demonstrates a **production-inspired, modular Infrastructure-as-Code architecture** built with:
 
 - **Terraform**  
   - Official terraform-aws-modules for **VPC** and **Security Groups**  
   - A **custom EC2 module** (wrapping `aws_instance` for full control)
 - **cloud-init** (bootstrap preparation before Ansible runs)
 - **Ansible** (Docker installation & pull-based deployment)
-- **Docker + GHCR** (immutable images, no builds on the server)
+- **Docker + GHCR** (pre-built images, no builds on the server)
 - **GitHub Actions CI** (Terraform validation + Ansible linting)
 
 This mirrors real-world SRE / DevOps / Infrastructure Architect patterns:
-**clean separation of concerns, modularity, reproducibility, and production-style workflows.**
+**clean separation of concerns, modularity, reproducibility, and production-style workflows.** It remains a deliberately small demo stack, not a hardened production deployment.
 
 ---
 
@@ -54,7 +54,7 @@ Terraform → AWS (VPC, SG, EC2 via custom module)
 - `ghcr.io/laurisneimanis/ccore-ai-demo-backend:latest`
 - `ghcr.io/laurisneimanis/ccore-ai-demo-frontend:latest`
 
-All images are immutable and pre-built.
+All application images are pre-built and pulled from GHCR. The current demo uses `latest` tags, so true immutable promotion would require release tags or image digests.
 
 ---
 
@@ -71,7 +71,8 @@ ccore-ai-infra/
 
 > **Note**  
 > `terraform.tfvars` is intentionally included for demonstration purposes to ensure full reproducibility.  
-> It contains no sensitive data and is safe to store in this repository for the demo.
+> It contains no sensitive data and is safe to store in this repository for the demo.  
+> The default SSH CIDR is open for demo simplicity and should be restricted before any real deployment.
 
 ---
 
@@ -140,7 +141,7 @@ docker compose -f /opt/ccore-ai/docker-compose.yml up -d
 - AWS: VPC, Subnet, IGW, EC2
 - Terraform: AWS modules + custom EC2 module, cloud-init, inventory generation
 - Ansible: roles, templates, provisioning
-- Docker + GHCR: immutable deployments
+- Docker + GHCR: pre-built image deployments
 - GitHub Actions CI
 - Mermaid diagrams
 
